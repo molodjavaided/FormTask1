@@ -1,47 +1,40 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { useEffect, useRef } from "react";
 import styles from "./App.module.css";
-import TextField from "./components/TextField/TextField";
-import { validator } from "./utils/validator";
 
-function App() {
-  const [userData, setUserData] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+const schema = yup.object().shape({
+  email: yup
+    .string()
+    .required("Email обязателен")
+    .matches(
+      /^[A-Z0-9._%+-]+@[A-Z0-9-]+.+.[A-Z]{2,4}$/i,
+      "Введите корректный email"
+    ),
+  password: yup
+    .string()
+    .required("Пароль обязателен")
+    .min(6, "Должно быть больше 6 символов"),
 
-  const [error, setError] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
+  passwordConfirm: yup
+    .string()
+    .required("Подтвердите пароль")
+    .oneOf([yup.ref("password")], "Пароли не совпадают"),
+});
+
+export default function App() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
   });
 
   const submitButtonRef = useRef(null);
 
-  const userShema = {
-    email: {
-      isRequired: { message: "Обязательное поле" },
-      isEmail: { message: "Введите корректный email" },
-    },
-    password: {
-      isRequired: { message: "Обязательное поле" },
-      min: { message: "Минимум 6 символов", value: 6 },
-    },
-    confirmPassword: {
-      checkPassword: {
-        message: "Пароли не совпадают",
-        ref: "password",
-      },
-    },
-  };
-
-  const validate = () => {
-    const error = validator(userData, userShema);
-    setError(error);
-    return Object.keys(error).length === 0;
-  };
-
-  const isValid = Object.keys(error).length === 0;
+  const isValid = Object.keys(errors).length === 0;
 
   useEffect(() => {
     if (isValid) {
@@ -49,63 +42,42 @@ function App() {
     }
   });
 
-  useEffect(() => {
-    validate();
-  }, [userData]);
-
-  const handleChange = (e) => {
-    const { value, name } = e.target;
-    setUserData({ ...userData, [name]: value });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const isValid = validate();
-    if (!isValid) return;
-    if (isValid) console.log(userData);
+  const onSubmit = (data) => {
+    console.log(data);
   };
 
   return (
-    <>
-      <form className={styles.Form} onSubmit={handleSubmit}>
-        <TextField
-          name="email"
-          label="Адрес электронной почты"
-          placeholder="Введите email"
-          value={userData.email}
-          onChange={handleChange}
-          type="email"
-          error={error?.email}
-        />
-        <TextField
-          name="password"
-          label="Пароль"
-          placeholder="Введите пароль"
-          value={userData.password}
-          onChange={handleChange}
-          type="password"
-          error={error?.password}
-        />
-        <TextField
-          name="confirmPassword"
-          label="Пароль для подтверждения"
-          placeholder="Введите пароль для подтверждения"
-          value={userData.confirmPassword}
-          onChange={handleChange}
-          type="password"
-          error={error?.confirmPassword}
-        />
-        <button
-          className={styles.formButton}
-          type="submit"
-          disabled={!isValid}
-          ref={submitButtonRef}
-        >
-          Регистрация
-        </button>
-      </form>
-    </>
+    <form className={styles.Form} onSubmit={handleSubmit(onSubmit)}>
+      <label htmlFor="email">Email</label>
+      <input
+        className={styles.inputForm}
+        type="email"
+        placeholder="Введите email"
+        {...register("email")}
+      />
+      <p className={styles.error}>{errors.email?.message}</p>
+
+      <label htmlFor="password">Пароль</label>
+      <input
+        className={styles.inputForm}
+        type="password"
+        placeholder="Придумайте пароль"
+        {...register("password")}
+      />
+      <p className={styles.error}>{errors.password?.message}</p>
+
+      <label htmlFor="passwordConfirm">Подтвердите пароль</label>
+      <input
+        className={styles.inputForm}
+        type="password"
+        placeholder="Повторите пароль"
+        {...register("passwordConfirm")}
+      />
+      <p className={styles.error}>{errors.passwordConfirm?.message}</p>
+
+      <button type="submit" ref={submitButtonRef}>
+        Зарегистрироваться
+      </button>
+    </form>
   );
 }
-
-export default App;
